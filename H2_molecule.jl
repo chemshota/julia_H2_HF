@@ -99,6 +99,15 @@ function calc_two_electron_integral(norm_const,contr_coef,Nb,orbital_senter_geom
     two_el_integral
 end
 
+function calc_J_K_matrix(Nb,two_el_integral,Pmatrix) 
+    Jmatrix=zeros(4,4)
+    Kmatrix=zeros(4,4)
+    for i in 1:Nb, j in 1:Nb
+        Jmatrix[i,j] = sum([two_el_integral[i,j,xci,theta]*Pmatrix[xci,theta] for xci in 1:Nb for theta in 1:Nb ])
+        Kmatrix[i,j] = - 1/2 * sum([two_el_integral[i,theta,xci,j]*Pmatrix[xci,theta] for xci in 1:Nb for theta in 1:Nb ])
+    end
+    (Jmatrix,Kmatrix)
+end
 
 #initialize variables
 num_of_atom = 2
@@ -146,10 +155,15 @@ norm_const=(2 .+ orbital_expornent ./ pi).^0.75
 
 #calc over_lap
 
-
+#one_eletron_matrix
 T_mat=calc_kinetic_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom)
 V_mat=calc_el_at_coulomb_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom,xyz,Zcharge)
-H_one = T_mat+V_mat
+H_core = T_mat+V_mat
 
+#two_eletron_matrix
 two_el_integral=calc_two_electron_integral(norm_const,contr_coef,Nb,orbital_senter_geom,orbital_expornent)
 
+#init density
+Pmatrix=diagm(0 => [0.5,0.5,0.5,0.5])
+(Jmatrix,Kmatrix)=calc_J_K_matrix(Nb,two_el_integral,Pmatrix) 
+Fock_matrix=H_core+Jmatrix+Kmatrix
