@@ -108,8 +108,8 @@ orbital_expornent[:,4] = orbital_expornent[:,2]
 
 #set contr_coef
 contr_coef=zeros(3,4)
-contr_coef[:,1] = [18.731137,2.8253997,0.6401217]
-contr_coef[1,2] = 0.1612778
+contr_coef[:,1] = [0.03349460,0.23472695,0.81375733]
+contr_coef[1,2] = 1.0
 contr_coef[:,3] = contr_coef[:,1]
 contr_coef[:,4] = contr_coef[:,2]
 
@@ -120,5 +120,5 @@ norm_const=(2 .+ orbital_expornent ./ pi).^0.75
 
 
 T_mat=calc_kinetic_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom)
-V_mat=calc_coulomb_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom,xyz,Zcharge)
+V_mat=calc_el_cor_coulomb_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom,xyz,Zcharge)
 H_one = T_mat+V_mat
