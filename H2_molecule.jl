@@ -17,7 +17,7 @@ function kinetic_integral(a,b,Ra,Rb)
     end
 end
 #def coulomb integral
-function el_cor_coulomb_integral(a,b,Ra,Rb,Rc,Zc)
+function el_at_coulomb_integral(a,b,Ra,Rb,Rc,Zc)
     if a == 0 && b == 0
         return 0.0
     else
@@ -51,14 +51,14 @@ function calc_kinetic_mat(norm_const,contr_coef,orbital_expornent,orbital_senter
     kinetic
 end
 
-function calc_el_cor_coulomb_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom,xyz,Zcharge)
+function calc_el_at_coulomb_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom,xyz,Zcharge)
     coef=norm_const .* contr_coef
     nrow=size(orbital_expornent)[1]
     ncol=size(orbital_expornent)[2]
     V_tensor=zeros(3,4,3,4)
     for i in 1:nrow, j in 1:nrow, k in 1:ncol,l in 1:ncol
         for c in 1:length(Zcharge)
-            V_tensor[i,k,j,l]+=el_cor_coulomb_integral(orbital_expornent[i,k],orbital_expornent[j,l],orbital_senter_geom[k],orbital_senter_geom[l],xyz[:,c],Zcharge[c])
+            V_tensor[i,k,j,l]+=el_at_coulomb_integral(orbital_expornent[i,k],orbital_expornent[j,l],orbital_senter_geom[k],orbital_senter_geom[l],xyz[:,c],Zcharge[c])
         end
     end
     coulomb=zeros(4,4)
@@ -70,7 +70,34 @@ function calc_el_cor_coulomb_mat(norm_const,contr_coef,orbital_expornent,orbital
     coulomb
 end
 
+function two_electron_integral(a,b,c,d,Ra,Rb,Rc,Rd)
+    if (a==0 && b==0) || (c==0 && d==0)
+        return 0.0
+    else
+        Rp=(a*Ra+b*Rb)/(a+b)
+        Rq=(c*Rc+d*Rd)/(c+d)
+        if Rp == Rq
+            return 0.0
+        else
+            temp1 = 2*pi^2.5/((a+b)*(c+d)*(a+b+c+d)^0.5)
+            temp2 = exp(-a*b/(a+b)*norm(Ra-Rb)^2)
+            temp3 = exp(-c*d/(c+d)*norm(Rc-Rd)^2)
+            temp4 = Fgamma((a+b)*(c+d)/(a+b+c+d)*norm(Rp-Rq)^2)
+            temp1 * temp2 * temp3 * temp4
+        end
+    end
+end
 
+function calc_two_electron_integral(norm_const,contr_coef,Nb,orbital_senter_geom,orbital_expornent)
+    two_el_integral = zeros(4,4,4,4)
+    coef=norm_const .* contr_coef
+    nrow=size(orbital_expornent)[1]
+    for i in 1:Nb, j in 1:Nb, k in 1:Nb, l in 1:Nb
+        (Ra,Rb,Rc,Rd)=(orbital_senter_geom[i],orbital_senter_geom[j],orbital_senter_geom[k],orbital_senter_geom[l])
+        two_el_integral[i,j,k,l] = sum([ coef[ia,i] * coef[ib,j] * coef[ic,k] * coef[id,l] * two_electron_integral(orbital_expornent[ia,i],orbital_expornent[ib,j],orbital_expornent[ic,k],orbital_expornent[id,l],Ra,Rb,Rc,Rd) for ia in 1:nrow  for ib in 1:nrow  for ic in 1:nrow  for id in 1:nrow ])
+    end
+    two_el_integral
+end
 
 
 #initialize variables
@@ -121,5 +148,8 @@ norm_const=(2 .+ orbital_expornent ./ pi).^0.75
 
 
 T_mat=calc_kinetic_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom)
-V_mat=calc_el_cor_coulomb_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom,xyz,Zcharge)
+V_mat=calc_el_at_coulomb_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom,xyz,Zcharge)
 H_one = T_mat+V_mat
+
+two_el_integral=calc_two_electron_integral(norm_const,contr_coef,Nb,orbital_senter_geom,orbital_expornent)
+
