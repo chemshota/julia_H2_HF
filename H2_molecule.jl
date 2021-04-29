@@ -166,4 +166,5 @@ two_el_integral=calc_two_electron_integral(norm_const,contr_coef,Nb,orbital_sent
 #init density
 Pmatrix=diagm(0 => [0.5,0.5,0.5,0.5])
 (Jmatrix,Kmatrix)=calc_J_K_matrix(Nb,two_el_integral,Pmatrix) 
-Fock_matrix=H_core+Jmatrix+Kmatrix
+Fock_matrix=H_core+Jmatrix-Kmatrix
+new_energy=dot(Nb*Nb*(H_core+Fock_matrix),Pmatrix)*0.5+nucleus_repulsion
