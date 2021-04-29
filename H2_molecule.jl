@@ -29,7 +29,6 @@ function el_cor_coulomb_integral(a,b,Ra,Rb,Rc,Zc)
             temp1 = (-2*pi*Zc/(a+b))
             temp2 = exp( - a*b/(a+b)*R_AB_sqr)
             temp3 = Fgamma((a+b)* norm(Rp .- Rc)^2)
-            println(norm(Rp .- Rc))
             temp1 * temp2 * temp3
         end
     end
@@ -101,17 +100,19 @@ orbital_senter_geom=[xyz[:,i] for i in orbital_senter]
 
 #set orbital_expornent
 orbital_expornent=zeros(3,4)
-orbital_expornent[:,1] = [18.731137,2.8253997,0.6401217]
-orbital_expornent[1,2] = 0.1612778
-orbital_expornent[:,3] = orbital_expornent[:,1]
-orbital_expornent[:,4] = orbital_expornent[:,2]
+H2_valcence_3_expornent = [18.731137 , 2.8253997 , 0.6401217]
+H2_valcence_1_expornent = [0.1612778 , 0.0 , 0.0]
+orbital_expornent[:,[1,3]] .=  H2_valcence_3_expornent
+orbital_expornent[:,[2,4]] .=  H2_valcence_1_expornent
+
 
 #set contr_coef
 contr_coef=zeros(3,4)
-contr_coef[:,1] = [0.03349460,0.23472695,0.81375733]
-contr_coef[1,2] = 1.0
-contr_coef[:,3] = contr_coef[:,1]
-contr_coef[:,4] = contr_coef[:,2]
+H2_valcence_3_conrtr_coef = [0.03349460,0.23472695,0.81375733]
+H2_valcence_1_conrtr_coef = [1.0 , 0.0 , 0.0]
+contr_coef[:,[1,3]] .=  H2_valcence_3_conrtr_coef
+contr_coef[:,[2,4]] .=  H2_valcence_1_conrtr_coef
+
 
 #calc norm_const
 norm_const=(2 .+ orbital_expornent ./ pi).^0.75
