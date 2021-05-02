@@ -16,6 +16,32 @@ function kinetic_integral(a,b,Ra,Rb)
         temp1 * temp2 * temp3 * temp4
     end
 end
+
+#def overlap integral
+function overlap_integral(a,b,Ra,Rb)
+    if a == 0 && b == 0
+        return 0.0
+    else
+        R_AB_sqr = norm(Ra .- Rb)^2
+        temp1=(a*b  / (a+b)) 
+        temp2 = (pi/(a+b))^1.5
+        temp3 = exp(-temp1*R_AB_sqr)
+        temp2 * temp3
+    end
+end
+
+function calc_overlap(norm_const,contr_coef,orbital_expornent,orbital_senter_geom)
+    coef=norm_const .* contr_coef
+    nrow=size(orbital_expornent)[1]
+    ncol=size(orbital_expornent)[2]
+    orverlap_int=zeros(4,4)
+    for i in 1:Nb, j in 1:Nb, k in 1:Nb, l in 1:Nb
+        (Ra,Rb)=(orbital_senter_geom[i],orbital_senter_geom[j])
+        orverlap_int[i,j] = sum([ coef[ia,i] * coef[ib,j] *overlap_integral(orbital_expornent[ia,i],orbital_expornent[ib,j],Ra,Rb) for ia in 1:nrow  for ib in 1:nrow ])
+    end
+    orverlap_int
+end
+
 #def coulomb integral
 function el_at_coulomb_integral(a,b,Ra,Rb,Rc,Zc)
     if a == 0 && b == 0
@@ -136,7 +162,7 @@ orbital_senter_geom=[xyz[:,i] for i in orbital_senter]
 
 #set orbital_expornent
 orbital_expornent=zeros(3,4)
-H2_valcence_3_expornent = [18.731137 , 2.8253997 , 0.6401217]
+H2_valcence_3_expornent = [18.731137 , 2.8253937 , 0.6401217]
 H2_valcence_1_expornent = [0.1612778 , 0.0 , 0.0]
 orbital_expornent[:,[1,3]] .=  H2_valcence_3_expornent
 orbital_expornent[:,[2,4]] .=  H2_valcence_1_expornent
@@ -151,7 +177,7 @@ contr_coef[:,[2,4]] .=  H2_valcence_1_conrtr_coef
 
 
 #calc norm_const
-norm_const=(2 .+ orbital_expornent ./ pi).^0.75
+norm_const=(2 .* orbital_expornent ./ pi).^0.75
 
 #calc over_lap
 
@@ -159,6 +185,7 @@ norm_const=(2 .+ orbital_expornent ./ pi).^0.75
 T_mat=calc_kinetic_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom)
 V_mat=calc_el_at_coulomb_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom,xyz,Zcharge)
 H_core = T_mat+V_mat
+S_mat=calc_overlap(norm_const,contr_coef,orbital_expornent,orbital_senter_geom)
 
 #two_eletron_matrix
 two_el_integral=calc_two_electron_integral(norm_const,contr_coef,Nb,orbital_senter_geom,orbital_expornent)
@@ -168,3 +195,6 @@ Pmatrix=diagm(0 => [0.5,0.5,0.5,0.5])
 (Jmatrix,Kmatrix)=calc_J_K_matrix(Nb,two_el_integral,Pmatrix) 
 Fock_matrix=H_core+Jmatrix-Kmatrix
 new_energy=dot(Nb*Nb*(H_core+Fock_matrix),Pmatrix)*0.5+nucleus_repulsion
+
+
+
