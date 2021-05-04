@@ -3,19 +3,6 @@ using LinearAlgebra
 
 #def Fgamma
 Fgamma(x) =1/2*(pi/x)^0.5*erf(x)
-#def kinetic_integral
-function kinetic_integral(a,b,Ra,Rb)
-    if a == 0 && b == 0
-        return 0.0
-    else
-        R_AB_sqr = norm(Ra .- Rb)^2
-        temp1=(a*b  / (a+b)) 
-        temp2 = (3-2*a*b / (a + b)*R_AB_sqr)
-        temp3 = (pi/(a+b))^1.5
-        temp4 = exp(-temp1*R_AB_sqr)
-        temp1 * temp2 * temp3 * temp4
-    end
-end
 
 #def overlap integral
 function overlap_integral(a,b,Ra,Rb)
@@ -42,6 +29,35 @@ function calc_overlap(norm_const,contr_coef,orbital_expornent,orbital_senter_geo
     orverlap_int
 end
 
+
+
+
+#def kinetic_integral
+function kinetic_integral(a,b,Ra,Rb)
+    if a == 0 && b == 0
+        return 0.0
+    else
+        R_AB_sqr = norm(Ra .- Rb)^2
+        temp1=(a*b  / (a+b)) 
+        temp2 = (3-2*a*b / (a + b)*R_AB_sqr)
+        temp3 = (pi/(a+b))^1.5
+        temp4 = exp(-temp1*R_AB_sqr)
+        temp1 * temp2 * temp3 * temp4
+    end
+end
+
+function calc_kinetic_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom)
+    coef=norm_const .* contr_coef
+    nrow=size(orbital_expornent)[1]
+    ncol=size(orbital_expornent)[2]
+    kinetic=zeros(4,4)
+    for i in 1:Nb, j in 1:Nb, k in 1:Nb, l in 1:Nb
+        (Ra,Rb)=(orbital_senter_geom[i],orbital_senter_geom[j])
+        kinetic[i,j] = sum([ coef[ia,i] * coef[ib,j] * kinetic_integral(orbital_expornent[ia,i],orbital_expornent[ib,j],Ra,Rb) for ia in 1:nrow  for ib in 1:nrow ])
+    end
+    kinetic
+end
+
 #def coulomb integral
 function el_at_coulomb_integral(a,b,Ra,Rb,Rc,Zc)
     if a == 0 && b == 0
@@ -58,23 +74,6 @@ function el_at_coulomb_integral(a,b,Ra,Rb,Rc,Zc)
             temp1 * temp2 * temp3
         end
     end
-end
-
-function calc_kinetic_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom)
-    coef=norm_const .* contr_coef
-    nrow=size(orbital_expornent)[1]
-    ncol=size(orbital_expornent)[2]
-    T_tensor=zeros(3,4,3,4)
-    for i in 1:nrow, j in 1:nrow, k in 1:ncol,l in 1:ncol
-        T_tensor[i,k,j,l]=kinetic_integral(orbital_expornent[i,k],orbital_expornent[j,l],orbital_senter_geom[k],orbital_senter_geom[l])
-    end
-    kinetic=zeros(4,4)
-    for i in 1:ncol, j in 1:ncol
-        for k in 1:nrow , l in 1:nrow
-        kinetic[i,j] += T_tensor[k,i,l,j]*coef[k,i]*coef[l,j]
-        end
-    end 
-    kinetic
 end
 
 function calc_el_at_coulomb_mat(norm_const,contr_coef,orbital_expornent,orbital_senter_geom,xyz,Zcharge)
@@ -194,7 +193,38 @@ two_el_integral=calc_two_electron_integral(norm_const,contr_coef,Nb,orbital_sent
 Pmatrix=diagm(0 => [0.5,0.5,0.5,0.5])
 (Jmatrix,Kmatrix)=calc_J_K_matrix(Nb,two_el_integral,Pmatrix) 
 Fock_matrix=H_core+Jmatrix-Kmatrix
-new_energy=dot(Nb*Nb*(H_core+Fock_matrix),Pmatrix)*0.5+nucleus_repulsion
+MO = Fock_matrix
+W_matrix=S_mat
+new_energy=dot((H_core+Fock_matrix),Pmatrix)*0.5+nucleus_repulsion
+
+#SCF calc for max 50 iteration
+for iteration in 1:50
+    @show(iteration)
+    @show(new_energy)
+    old_energy=new_energy
+    #solve F*C=e*S*C
+    (orbital_energy,MO)=eigen(W_matrix^(-1) * MO)
+    #@show(orbital_energy)
+    #construct density matrix
+    Pmatrix=MO * MO
+    Pmatrix .* 2.0
+    #Fock_matrix
+    (Jmatrix,Kmatrix)=calc_J_K_matrix(Nb,two_el_integral,Pmatrix) 
+    Fock_matrix=H_core+Jmatrix-Kmatrix
+    #Chek Brillouin's condition
+    W_matrix=(Fock_matrix*Pmatrix)*S_mat
+    W_matrix=W_matrix-(Fock_matrix*Pmatrix)*S_mat
+    residual =sqrt(norm(Wmatrix))
+    @show(residual)
+    new_energy=dot((H_core+MO),Pmatrix)*0.5+nucleus_repulsion
+    MO=Fock_matrix
+    W_matrix=S_mat
+
+    if (abs(new_energy - old_energy) <= 1.0e-10)
+        SCFsuccess = true
+        break
+    end
+end
 
 
 
